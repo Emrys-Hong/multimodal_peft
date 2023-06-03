@@ -16,7 +16,7 @@
 | Audio + Video classification           | vggsound                                      | 200K          | Completed       |
 | Text generation                        | Wikipedia                                     | 13M           | Not applicable |
 | Text generation                        | Bookcorpus                                    | 74M           | Not applicable |
-| audio + masked text to text reconstruction | Librispeech                                | 200K          | Not started     |
+| audio + masked text to text reconstruction | Librispeech                                | 200K          | deep    |
 | Visual Instructions                    | LLAVA-Instruct                                | 150K          | Completed       |
 | Visual Instructions                    | LLaVA-CC3M                                    | 595K          | Completed       |
 | Audio Captions                         | Audioset                                      | 2.5M          |  100     |
@@ -27,3 +27,26 @@
 | Audio + Text                           | Free sound, BBC                              |                | 100          | 
 | Image + Text                          | Microsoft COCO                                |                 |  100: /data/deep/.cache/lavis/coco/images |
 
+Tasks from InstructBlip, 
+Task from ICode
+
+MOSEI data from Yixuan
+1. Video + audio + text + instruction: "predict the sentiment" 
+2. Video + audio instruction: "predict the sentiment"
+3. Video + instruction: "predict the sentiment"
+4. Audio + instruction: "predict the sentiment"
+
+video+audio+instruction -> text answer
+
+1. Image caption
+2. Video caption
+3. Visual QA
+4. Video QA
+5. ASR
+6. Audio sentiment (MOSEI)
+7. Audio + Video classification (vggsound)
+8. Text generation (Wikipedia + Bookcorpus)
+9. audio + masked text to text reconstruction (Same as the ASR dataset)
+10. image + masked text to text reconstruction (Same as the image captioning dataset)
+
+11. LLaVA

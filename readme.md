@@ -5,8 +5,6 @@
 | Image caption                          | MS-COCO                                       | 164K          | Completed       |
 | Image caption                          | RedCaps                                       | 12M           | Completed       |
 | Video caption                          | Youtube-8M                                    | 8M            | Completed       |
-| Video caption                          | webvid                                        | 10M           | Completed       |
-| Visual QA                              | AOKVQA                                        | 24K           | Not started     |
 | Video QA                               | TGIF-QA MSVD-QA                               | 165K          | In progress     |
 | Video QA                               | MSRVTT-QA                                     | 243K          | In progress     |
 | ASR                                    | Librispeech                                   | 138K          | Not started     |

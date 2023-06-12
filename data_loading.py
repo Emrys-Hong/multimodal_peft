@@ -1,6 +1,7 @@
-import json
+import json, jsonlines
 import re
 import random
+from pprint import pprint
 from pathlib import Path
 from typing import List, Tuple, Dict, Union, Optional
 from types import MethodType 
@@ -18,7 +19,7 @@ class Sample(BaseModel):
 
 
 class CaptionSample(Sample):
-    image_path: str = ""
+    image_path: str
 
 
 class CocoData(ExtraModel):
@@ -120,6 +121,46 @@ class AOKVQAData(CocoData):
 
         return data
 
+class VideoSample(Sample):
+    video_path: str
+
+class WebvidsData(ExtraModel):
+    task_name: str = "video caption"
+    path_raw: str = "/mnt/data_16tb/navo/trimera/datasets/webvids/results_2M_train.jsonl"
+    train_video_path: Path = Path("/mnt/data_16tb/navo/trimera/datasets/webvids/data/train")
+
+    def load_video_id2path(self) -> dict:
+        video_name_to_path = {}
+        for child in tqdm(self.train_video_path.iterdir()):
+            if child.suffix == '.mp4':
+                child_name = child.name
+                video_name_to_path[child_name] = child.resolve()
+        self.map_video_to_path = video_name_to_path
+
+    def load(self) -> List[Dict]:
+        self.load_video_id2path()
+        raw_data = []
+        with jsonlines.open(self.path_raw) as raw:
+            for sample in raw:
+                raw_data.append(sample)
+        return raw_data
+
+    def preprocess_raw(self):
+        raw = self.load()
+        data = []
+
+        for i, sample in enumerate(tqdm(raw)):
+            video_name = sample["fname"].split('/')[-1]
+            if video_name in self.map_video_to_path:
+                sample = VideoSample(
+                    id = i,
+                    text = sample["caption"],
+                    video_path = str(self.map_video_to_path[video_name].resolve()),
+                )
+                data.append(sample)
+        return data
+
+
 
 
 def test_model(name: str):
@@ -129,12 +170,15 @@ def test_model(name: str):
         dataset = OKVQAData()
     elif name == "aokvqa":
         dataset = AOKVQAData()
+    elif name == "webvids":
+        # This will take around 4 mins
+        dataset = WebvidsData()
     else:
         raise ValueError("dataset currently not included")
 
     data = dataset.preprocess_raw()
     print(f'dataset size:{round(len(data)/1e6, 2)} M')
-    print(random.choice(data))
+    pprint(random.choices(data, k=5))
 
 
 """

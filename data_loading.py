@@ -28,7 +28,7 @@ class CocoData(ExtraModel):
 
     def load_image_id2path(self) -> dict:
         image_name_to_path = {}
-        for child in self.train_image_path.iterdir():
+        for child in list(self.train_image_path.iterdir()):
             if child.suffix == '.jpg':
                 child_name = child.name.split('_')[-1]
                 image_name_to_path[child_name] = child.resolve()
@@ -72,6 +72,14 @@ class CocoCaptionData(CocoData):
 
         return data
 
+class VisualstorytellingData(ExtraModel):
+    pass
+class VisualdialogueData(ExtraModel):
+    pass
+class MmdialogData(ExtraModel):
+    pass
+class PhotochatData(ExtraModel):
+    pass
 class VQASample(Sample):
     image_path: str = ""
     answer: Union[str, List[str]] = []
@@ -185,6 +193,55 @@ class RedcapsData(ExtraModel):
                 data.append(sample)
         return data
 
+class UtterancePair(BaseModel):
+    human_utterance: str
+    ai_utterance: str
+
+class DialogSample(BaseModel):
+    utterance_pair_list: List[UtterancePair]
+
+    @classmethod
+    def create(cls, dialog_list):
+        lst = []
+        for human, ai in zip(dialog_list[::2], dialog_list[1::2]):
+            assert human["from"] == "human"
+            assert ai["from"] == "gpt"
+            lst.append(UtterancePair(
+                human_utterance=human["value"],
+                ai_utterance=ai["value"]
+            ))
+        return cls(utterance_pair_list = lst)
+
+
+class MMDialogSample(BaseModel):
+    id: Optional[str] = None
+    image_path: str
+    conversation: DialogSample
+
+class LlavainstructData(CocoData):
+    """https://huggingface.co/datasets/liuhaotian/LLaVA-Instruct-150K/tree/main"""
+    task: str = "conversational vqa"
+    path_raw: Path = Path("data/LLaVA-Instruct/llava_instruct_150k.json")
+    # path_raw: Path = Path("data/LLaVA-Instruct/llava_instruct_80k.json")
+    # path_raw: Path = Path("data/LLaVA-Instruct/complex_reasoning_77k.json")
+    # path_raw: Path = Path("data/LLaVA-Instruct/conversation_58k.json")
+    # path_raw: Path = Path("data/LLaVA-Instruct/detail_23k.json")
+
+    def preprocess_raw(self):
+        raw = self.load()
+        data = []
+        for sample in tqdm(raw):
+            image_name = sample["image"]
+            if image_name in self.map_image_to_path:
+                sample = MMDialogSample(
+                    id = sample["id"],
+                    image_path = str(self.map_image_to_path[image_name].resolve()),
+                    conversation = DialogSample.create(sample["conversations"])
+                )
+                data.append(sample)
+        return data
+
+
 
 
 
@@ -202,6 +259,8 @@ def test_model(name: str):
         dataset = WebvidsData()
     elif name == "redcaps":
         dataset = RedcapsData()
+    elif name == "llavainstruct":
+        dataset = LlavainstructData()
     else:
         raise ValueError("dataset currently not included")
 
@@ -214,6 +273,7 @@ def test_model(name: str):
 TODO:
 Download redcaps image data
 mscoco data and cococaption dataset is the same?
+download llava instruct image
 """
 
 """

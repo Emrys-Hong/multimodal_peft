@@ -171,7 +171,8 @@ class RedcapsData(ExtraModel):
 
     def preprocess_raw(self) -> List[RedditSample]:
         data = []
-        for annotation_file in tqdm(self.path_raw.iterdir()):
+        for annotation_file in tqdm(list(self.path_raw.iterdir())):
+            if annotation_file.suffix != ".json": continue
             with open(annotation_file) as f:
                 content = json.load(f)
             for sample in content['annotations']:
@@ -211,6 +212,12 @@ def test_model(name: str):
 
 """
 TODO:
+Download redcaps image data
+mscoco data and cococaption dataset is the same?
+"""
+
+"""
+python data_loading.py test_model --name cococaption
 """
 
 if __name__ == "__main__":

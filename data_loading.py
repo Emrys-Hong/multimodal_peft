@@ -162,7 +162,7 @@ class WebvidsData(ExtraModel):
 
 class RedditSample(Sample):
     image_url: str
-    score: int
+    score: Optional[int]
 
 class RedcapsData(ExtraModel):
     """https://redcaps.xyz/"""
@@ -179,7 +179,7 @@ class RedcapsData(ExtraModel):
                     id = sample["image_id"],
                     text = sample["caption"],
                     image_url = sample["url"],
-                    score = sample["score"],
+                    score = sample.get("score", None),
                 )
                 data.append(sample)
         return data

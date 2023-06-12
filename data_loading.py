@@ -46,7 +46,7 @@ class CocoData(ExtraModel):
 
 
 class CocoCaptionData(CocoData):
-    task_name: str = "image_caption"
+    task_name: str = "image caption"
     path_raw: str = "data/COCO/COCO/annotations/captions_train2017.json"
     prompts: List[str] = [
         "How can we describe this photo?",
@@ -56,7 +56,7 @@ class CocoCaptionData(CocoData):
         "Produce an explanation of the picture.",
     ]
 
-    def preprocess_raw(self) -> List[dict]:
+    def preprocess_raw(self) -> List[CaptionSample]:
         annotations = self.load()
         data = []
 
@@ -80,7 +80,7 @@ class OKVQAData(CocoData):
     task_name: str = "vqa"
     path_raw: str = "data/okvqa/annotations/okvqa_train.json"
 
-    def preprocess_raw(self) -> List[dict]:
+    def preprocess_raw(self) -> List[VQASample]:
         raw = self.load()
         data = []
         for sample in tqdm(raw):
@@ -103,7 +103,7 @@ class AOKVQAData(CocoData):
     task_name: str = 'vqa'
     path_raw: str = "data/aokvqa/annotations/aokvqa_v1p0_train.json"
 
-    def preprocess_raw(self) -> List[dict]:
+    def preprocess_raw(self) -> List[AOKVQASample]:
         data = []
         raw = self.load()
         for i, sample in enumerate(tqdm(raw)):
@@ -145,7 +145,7 @@ class WebvidsData(ExtraModel):
                 raw_data.append(sample)
         return raw_data
 
-    def preprocess_raw(self):
+    def preprocess_raw(self) -> List[VideoSample]:
         raw = self.load()
         data = []
 
@@ -160,19 +160,47 @@ class WebvidsData(ExtraModel):
                 data.append(sample)
         return data
 
+class RedditSample(Sample):
+    image_url: str
+    score: int
+
+class RedcapsData(ExtraModel):
+    """https://redcaps.xyz/"""
+    task_name: str = "image caption"
+    path_raw: Path = Path("/mnt/data_16tb/navo/trimera/datasets/redcaps/annotations")
+
+    def preprocess_raw(self) -> List[RedditSample]:
+        data = []
+        for annotation_file in tqdm(self.path_raw.iterdir()):
+            with open(annotation_file) as f:
+                content = json.load(f)
+            for sample in content['annotations']:
+                sample = RedditSample(
+                    id = sample["image_id"],
+                    text = sample["caption"],
+                    image_url = sample["url"],
+                    score = sample["score"],
+                )
+                data.append(sample)
+        return data
+
+
+
 
 
 
 def test_model(name: str):
-    if name == 'cococaption':
+    if name == "cococaption":
         dataset = CocoCaptionData()
-    elif name == 'okvqa':
+    elif name == "okvqa":
         dataset = OKVQAData()
     elif name == "aokvqa":
         dataset = AOKVQAData()
     elif name == "webvids":
         # This will take around 4 mins
         dataset = WebvidsData()
+    elif name == "redcaps":
+        dataset = RedcapsData()
     else:
         raise ValueError("dataset currently not included")
 

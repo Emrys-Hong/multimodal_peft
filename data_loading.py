@@ -15,6 +15,7 @@ import concurrent
 from concurrent.futures import ThreadPoolExecutor
 import pandas as pd
 import numpy as np
+import pyarrow.dataset as ds
 
 class ExtraModel(BaseModel, extra="allow"):
     pass
@@ -344,7 +345,6 @@ class VggsoundData(ExtraModel):
         return data
 
 
-
 class WavecapsData(ExtraModel):
     def preprocess_raw(self):
         data = []
@@ -356,6 +356,13 @@ class BbcsoundData(ExtraModel):
         data = []
         return data
 
+class GigaspeechData(ExtraModel):
+    task_name: str = "asr or tts"
+    path_raw: str = "/mnt/0990a685-e659-4006-a55a-e32c5555499d/ambuj/speechcolab___gigaspeech/l/0.0.0/0db31224ad43470c71b459deb2f2b40956b3a4edfde5fb313aaec69ec7b50d3c/gigaspeech-validation.arrow"
+
+    def preprocess_raw(self) -> List[AudioSample]:
+        dataset = ds.dataset(self.path_raw, format="arrow")
+        breakpoint()
 
 
 
@@ -371,7 +378,6 @@ def test(name: str):
     elif name == "aokvqa":
         dataset = AOKVQAData()
     elif name == "webvids":
-        # This will take around 4 mins
         dataset = WebvidsData()
     elif name == "redcaps":
         dataset = RedcapsData()
@@ -381,10 +387,14 @@ def test(name: str):
         # not tested
         dataset = Cc3mData()
     elif name == "freesound":
-        # use download() function to download the data
+        # use self.download() function to download the data
         dataset = FreesoundData()
     elif name == "vggsound":
         dataset = VggsoundData()
+    elif name == "gigaspeech":
+        # This is one is on 253
+        # not finished
+        dataset = GigaspeechData()
     else:
         raise ValueError("dataset currently not included")
 
@@ -402,7 +412,7 @@ download c4 dataset https://huggingface.co/datasets/c4/
 """
 
 """
-python data_loading.py test_model --name cococaption
+python data_loading.py test cococaption
 """
 
 if __name__ == "__main__":

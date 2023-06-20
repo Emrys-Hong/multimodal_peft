@@ -1,4 +1,6 @@
 import json, jsonlines
+from os import cpu_count
+import os
 import re
 import random
 from pprint import pprint
@@ -9,6 +11,10 @@ from types import MethodType
 from fire import Fire
 from pydantic import BaseModel, Extra
 from tqdm import tqdm
+import concurrent
+from concurrent.futures import ThreadPoolExecutor
+import pandas as pd
+import numpy as np
 
 class ExtraModel(BaseModel, extra="allow"):
     pass
@@ -227,7 +233,7 @@ class LlavainstructData(CocoData):
     # path_raw: Path = Path("data/LLaVA-Instruct/conversation_58k.json")
     # path_raw: Path = Path("data/LLaVA-Instruct/detail_23k.json")
 
-    def preprocess_raw(self):
+    def preprocess_raw(self) -> List[MMDialogSample]:
         raw = self.load()
         data = []
         for sample in tqdm(raw):
@@ -242,12 +248,122 @@ class LlavainstructData(CocoData):
         return data
 
 
+class Cc3mData(ExtraModel):
+    task: str = "conversational vqa"
+    path_raw: str = "data/CC3M/chat.json"
+    image_path: Path = Path("data/CC3M/images/")
+
+    def preprocess_raw(self) -> List[MMDialogSample]:
+        data = []
+        with open(self.path_raw) as f: raw = json.load(f)
+
+        for sample in tqdm(raw):
+            sample = MMDialogSample(
+                id = sample["id"],
+                image_path = str( (self.image_path/ sample["image"]).resolve() ),
+                conversation = DialogSample.create(sample["conversations"])
+            )
+            data.append(sample)
+        return data
+
+class AudioSample(Sample):
+    audio_path: str
+    description: Optional[str] = None # describe the audio sample
+    tags: Optional[List[str]] = None # list of tags that can describe the audio
+    duration: Optional[float] = None # in terms of seconds
+
+class FreesoundData(ExtraModel):
+    task_name: str = "audio caption"
+    # path_raw: str = "/mnt/data_16tb/navo/freesound/fsd_final.json"
+    path_raw: str = "/mnt/data_16tb/navo/freesound/fsd_final_2s.json"
+    audio_path: Path = Path("/mnt/data_16tb/navo/freesound/audio")
+
+    def preprocess_raw(self) -> List[AudioSample]:
+        with open(self.path_raw) as f:
+            raw = json.load(f)
+        data = []
+
+        for sample in tqdm(raw["data"]):
+            audio_name = sample["download_link"].split("/")[-1]
+            sample = AudioSample(
+                id = sample["id"],
+                text = sample["caption"],
+                audio_path = str((self.audio_path/audio_name).resolve()),
+                description = sample["description"],
+                tags = sample.get("tags"),
+                duration = float(sample.get("duration"))
+            )
+            data.append(sample)
+        return data
+
+    def download(self):
+        def download_url(url):
+            cmd = f"wget -P {self.audio_path} {url}"
+            os.system(cmd)
+            return True
+
+        success = []
+        with open(self.path_raw) as f:
+            raw = json.load(f)
+        download_links = [o["download_link"] for o in raw]
+        n_worker = cpu_count() - 4
+        with ThreadPoolExecutor(max_workers=n_worker) as executor:
+            progress = tqdm(total=len(download_links), desc="Downloading data")
+
+            tasks = [executor.submit(download_url, url) for url in download_links]
+            for future in concurrent.futures.as_completed(tasks):
+                try:
+                    success.append(future.result())
+                except Exception:
+                    success.append(False)
+                progress.update()
+            progress.close()
+
+        print(f"number of success:{sum(success)}, total: {len(success)}")
+
+
+class VggsoundData(ExtraModel):
+    task_name: str = "video classification"
+    path_raw: str = "/mnt/data_16tb/deep/VGGSound/vggsound.csv"
+    # extract tar files from /mnt/data_16tb/deep/VGGSound/
+    video_path: Path = Path("/mnt/data_16tb/deep/VGGSound/scratch/shared/beegfs/hchen/train_data/VGGSound_final/video")
+
+    def preprocess_raw(self) -> List[VideoSample]:
+        df = pd.read_csv(self.path_raw, header=None)
+
+        data = []
+        for i, values in df.iterrows():
+            if values[3] == "train":
+                video_name = values[0] + "_" + str(values[1]).zfill(6) + ".mp4"
+                sample = VideoSample(
+                    id=i,
+                    text=values[2],
+                    video_path= str((self.video_path/video_name).resolve()),
+                )
+                data.append(sample)
+        return data
+
+
+
+class WavecapsData(ExtraModel):
+    def preprocess_raw(self):
+        data = []
+        return data
+
+
+class BbcsoundData(ExtraModel):
+    def preprocess_raw(self):
+        data = []
+        return data
 
 
 
 
 
-def test_model(name: str):
+
+
+
+def test(name: str):
     if name == "cococaption":
         dataset = CocoCaptionData()
     elif name == "okvqa":
@@ -261,6 +377,14 @@ def test_model(name: str):
         dataset = RedcapsData()
     elif name == "llavainstruct":
         dataset = LlavainstructData()
+    elif name == "cc3m":
+        # not tested
+        dataset = Cc3mData()
+    elif name == "freesound":
+        # use download() function to download the data
+        dataset = FreesoundData()
+    elif name == "vggsound":
+        dataset = VggsoundData()
     else:
         raise ValueError("dataset currently not included")
 
@@ -273,7 +397,8 @@ def test_model(name: str):
 TODO:
 Download redcaps image data
 mscoco data and cococaption dataset is the same?
-download llava instruct image
+llava instruct image use coco image?
+download c4 dataset https://huggingface.co/datasets/c4/
 """
 
 """

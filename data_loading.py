@@ -273,11 +273,13 @@ class AudioSample(Sample):
     tags: Optional[List[str]] = None # list of tags that can describe the audio
     duration: Optional[float] = None # in terms of seconds
 
-class FreesoundData(ExtraModel):
+class WavcapsData(ExtraModel):
+    """
+    https://huggingface.co/datasets/cvssp/WavCaps
+    """
     task_name: str = "audio caption"
-    # path_raw: str = "/mnt/data_16tb/navo/freesound/fsd_final.json"
-    path_raw: str = "/mnt/data_16tb/navo/freesound/fsd_final_2s.json"
-    audio_path: Path = Path("/mnt/data_16tb/navo/freesound/audio")
+    path_raw: str
+    audio_path: Path
 
     def preprocess_raw(self) -> List[AudioSample]:
         with open(self.path_raw) as f:
@@ -323,6 +325,24 @@ class FreesoundData(ExtraModel):
         print(f"number of success:{sum(success)}, total: {len(success)}")
 
 
+class FreesoundData(WavcapsData):
+    # path_raw: str = "/mnt/data_16tb/navo/freesound/fsd_final.json"
+    path_raw = "/mnt/data_16tb/navo/freesound/fsd_final_2s.json"
+    audio_path = Path("/mnt/data_16tb/navo/freesound/audio")
+
+class BbcsoundData(WavcapsData):
+    path_raw = "/mnt/data_02tb/deep/wavcaps_audioset/WavCaps/json_files/BBC_Sound_Effects/bbc_final.json"
+    audio_path = Path("/mnt/data_02tb/deep/wavcaps_audioset/WavCaps/Zip_files/BBC_Sound_Effect")
+
+
+class SoundbibleData(WavcapsData):
+    path_raw = "/mnt/data_02tb/deep/wavcaps_audioset/WavCaps/json_files/SoundBible/sb_final.json"
+    audio_path = Path("/mnt/data_02tb/deep/wavcaps_audioset/WavCaps/Zip_files/SoundBible")
+
+class AudiosetslData(WavcapsData):
+    path_raw = "/mnt/data_02tb/deep/wavcaps_audioset/WavCaps/json_files/AudioSet_SL/as_final.json"
+    audio_path = Path("/mnt/data_02tb/deep/wavcaps_audioset/WavCaps/Zip_files/AudioSet_SL")
+
 class VggsoundData(ExtraModel):
     task_name: str = "video classification"
     path_raw: str = "/mnt/data_16tb/deep/VGGSound/vggsound.csv"
@@ -338,23 +358,14 @@ class VggsoundData(ExtraModel):
                 video_name = values[0] + "_" + str(values[1]).zfill(6) + ".mp4"
                 sample = VideoSample(
                     id=i,
-                    text=values[2],
+                    text=valuepath_raws[2],
                     video_path= str((self.video_path/video_name).resolve()),
                 )
                 data.append(sample)
         return data
 
 
-class WavecapsData(ExtraModel):
-    def preprocess_raw(self):
-        data = []
-        return data
 
-
-class BbcsoundData(ExtraModel):
-    def preprocess_raw(self):
-        data = []
-        return data
 
 class GigaspeechData(ExtraModel):
     task_name: str = "asr or tts"
@@ -388,19 +399,26 @@ def test(name: str):
         dataset = Cc3mData()
     elif name == "freesound":
         # use self.download() function to download the data
+        # there were some data under path /mnt/data_02tb/deep/wavcaps_audioset/WavCaps/Zip_files/FreeSound
         dataset = FreesoundData()
     elif name == "vggsound":
         dataset = VggsoundData()
     elif name == "gigaspeech":
         # This is one is on 253
-        # not finished
+        # todo not finished with arrow file
         dataset = GigaspeechData()
+    elif name == "bbcsound":
+        dataset = BbcsoundData()
+    elif name == "soundbible":
+        dataset = SoundbibleData()
+    elif name == "audiosetsl":
+        dataset = AudiosetslData()
     else:
         raise ValueError("dataset currently not included")
 
     data = dataset.preprocess_raw()
-    print(f'dataset size:{round(len(data)/1e6, 2)} M')
     pprint(random.choices(data, k=5))
+    print(f'dataset size:{round(len(data)/1e6, 2)} M')
 
 
 """
@@ -409,6 +427,7 @@ Download redcaps image data
 mscoco data and cococaption dataset is the same?
 llava instruct image use coco image?
 download c4 dataset https://huggingface.co/datasets/c4/
+All AudioCaps data cannot extract
 """
 
 """

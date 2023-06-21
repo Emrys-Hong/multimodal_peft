@@ -358,13 +358,11 @@ class VggsoundData(ExtraModel):
                 video_name = values[0] + "_" + str(values[1]).zfill(6) + ".mp4"
                 sample = VideoSample(
                     id=i,
-                    text=valuepath_raws[2],
+                    text=values[2],
                     video_path= str((self.video_path/video_name).resolve()),
                 )
                 data.append(sample)
         return data
-
-
 
 
 class GigaspeechData(ExtraModel):
@@ -408,10 +406,13 @@ def test(name: str):
         # todo not finished with arrow file
         dataset = GigaspeechData()
     elif name == "bbcsound":
+        # 100
         dataset = BbcsoundData()
     elif name == "soundbible":
+        # 100
         dataset = SoundbibleData()
     elif name == "audiosetsl":
+        # 100
         dataset = AudiosetslData()
     else:
         raise ValueError("dataset currently not included")

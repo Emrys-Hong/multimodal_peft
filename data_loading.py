@@ -372,6 +372,58 @@ class GigaspeechData(ExtraModel):
     def preprocess_raw(self) -> List[AudioSample]:
         dataset = ds.dataset(self.path_raw, format="arrow")
         breakpoint()
+class Sentiment(ExtraModel):
+    happy: float
+    sad: float
+    anger: float
+    surprise: float
+    disgust: float
+    fear: float
+
+    def get_positive_emotions(self):
+        emotions = []
+        for attr, value in self.__dict__.items():
+            if value > 0:
+                emotions.append(attr)
+        return ', '.join(emotions)
+
+
+class MoseiSample(VideoSample):
+    start_time: float
+    end_time: float
+    sentiment: Sentiment
+
+class MoseiData(ExtraModel):
+    """in 253"""
+    path_raw: str = "/mnt/0990a685-e659-4006-a55a-e32c5555499d/yixuan/MOSEI/mosei.csv"
+    video_path: Path = Path("/mnt/0990a685-e659-4006-a55a-e32c5555499d/yixuan/MOSEI/Raw/Audio/Combined")
+
+
+    def preprocess_raw(self) -> List[MoseiSample]:
+        df = pd.read_csv(self.path_raw)
+        data = []
+        for i, sample in df.iterrows():
+            video_name = sample["id"] + "_" + str(sample["segment_id"]) + ".mp4"
+            sample_video_path = str( (self.video_path/video_name).resolve() )
+            sentiment = Sentiment(
+                happy=float(sample["happy"]),
+                sad=float(sample["sad"]),
+                anger=float(sample["anger"]),
+                surprise=float(sample["surprise"]),
+                disgust=float(sample["disgust"]),
+                fear=float(sample["fear"]),
+            )
+            sample = MoseiSample(
+                id = i,
+                text = sentiment.get_positive_emotions(),
+                video_path=sample_video_path,
+                start_time=float(sample["start"]),
+                end_time=float(sample["end"]),
+                sentiment=sentiment,
+            )
+            data.append(sample)
+        return data
+
 
 
 
@@ -414,6 +466,8 @@ def test(name: str):
     elif name == "audiosetsl":
         # 100
         dataset = AudiosetslData()
+    elif name == "mosei":
+        dataset = MoseiData()
     else:
         raise ValueError("dataset currently not included")
 

@@ -6,7 +6,6 @@
 | Video QA                               | TGIF-QA MSVD-QA                               | 165K          | In progress     |
 | Video QA                               | MSRVTT-QA                                     | 243K          | In progress     |
 | ASR                                    | Librispeech                                   | 138K          | Not started     |
-| Audio sentiment                        | MOSEI                                         | 24K           | Completed       |
 | audio + masked text to text reconstruction | Librispeech                                | 200K          | deep    |
 
 Tasks from InstructBlip, 
@@ -24,7 +23,6 @@ MOSEI:
 2. Video caption
 3. Visual QA
 4. Video QA
-5. ASR
 8. Text generation (Wikipedia + Bookcorpus)
 9. audio + masked text to text reconstruction (Same as the ASR dataset)
 10. image + masked text to text reconstruction (Same as the image captioning dataset)

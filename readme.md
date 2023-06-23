@@ -2,11 +2,8 @@
 
 | Task                                   | Datasets                                      | Size          | path            |
 |----------------------------------------|-----------------------------------------------|---------------|-----------------|
-| Video caption                          | Youtube-8M                                    | 8M            | Completed       |
 | Video QA                               | TGIF-QA MSVD-QA                               | 165K          | In progress     |
 | Video QA                               | MSRVTT-QA                                     | 243K          | In progress     |
-| ASR                                    | Librispeech                                   | 138K          | Not started     |
-| audio + masked text to text reconstruction | Librispeech                                | 200K          | deep    |
 
 Tasks from InstructBlip, 
 Task from ICode
@@ -19,11 +16,20 @@ MOSEI:
 4. Audio + instruction: "predict the sentiment"
 ```
 
+Librispeech
+```
+1. ASR
+2. audio + masked text to text reconstruction
+```
 
-2. Video caption
-3. Visual QA
-4. Video QA
+COCO
+```
+1. Image Captioning
+2. Image + masked text to text reconstruction
+```
+
 8. Text generation (Wikipedia + Bookcorpus)
-9. audio + masked text to text reconstruction (Same as the ASR dataset)
-10. image + masked text to text reconstruction (Same as the image captioning dataset)
 
+### Other possible datasets
+- [Youtube 8M](https://research.google.com/youtube8m/) Video classfication dataset
+- [Multimodal C4](https://github.com/allenai/mmc4) billion scale corpus of images interleaved with text

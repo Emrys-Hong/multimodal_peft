@@ -423,6 +423,31 @@ class MoseiData(ExtraModel):
             )
             data.append(sample)
         return data
+class LibrispeechData(ExtraModel):
+    task_name: str = "audio captioning"
+    path_raw: str = "/mnt/0990a685-e659-4006-a55a-e32c5555499d/yixuan/librispeech/LibriSpeech/train/train-clean-360"
+    # path_raw: str = "/mnt/0990a685-e659-4006-a55a-e32c5555499d/yixuan/librispeech/LibriSpeech/train/train-clean-100"
+    audio_path: Path = Path("/mnt/0990a685-e659-4006-a55a-e32c5555499d/yixuan/librispeech/LibriSpeech/train/train-clean-360")
+
+    def preprocess_raw(self) -> List[AudioSample]:
+        data = []
+        for serial_id in self.audio_path.iterdir():
+            for folder in serial_id.iterdir():
+                for file in folder.iterdir():
+                    if file.suffix == ".txt":
+                        with open(file) as reader:
+                            lines = reader.readlines()
+                        for line in lines:
+                            file_index, *words = line.split()
+                        file_path = str( (folder/file_index).resolve() ) + ".flac"
+                        sample = AudioSample(
+                            id=file_index,
+                            text=" ".join(words),
+                            audio_path=file_path,
+                        )
+                        data.append(sample)
+
+        return data
 
 
 
@@ -468,12 +493,14 @@ def test(name: str):
         dataset = AudiosetslData()
     elif name == "mosei":
         dataset = MoseiData()
+    elif name == "librispeech":
+        dataset = LibrispeechData()
     else:
         raise ValueError("dataset currently not included")
 
     data = dataset.preprocess_raw()
     pprint(random.choices(data, k=5))
-    print(f'dataset size:{round(len(data)/1e6, 2)} M')
+    print(f'dataset size:{round(len(data)/1e6, 4)} M')
 
 
 """

@@ -43,7 +43,8 @@ class AudioSample(Sample):
 
 class VisualqaSample(VideoSample):
     answer: str
-    options: List[str]
+    options: Optional[List[str]] = None
+
 
 class CocoData(ExtraModel):
     train_image_path: Path = Path("data/COCO/train2014/")
@@ -379,6 +380,7 @@ class GigaspeechData(ExtraModel):
     def preprocess_raw(self) -> List[AudioSample]:
         dataset = ds.dataset(self.path_raw, format="arrow")
         breakpoint()
+
 class Sentiment(ExtraModel):
     happy: float
     sad: float
@@ -536,7 +538,8 @@ class TgifData(ExtraModel):
     """
     task_name: str = "video qa"
     raw_path: str = "/mnt/data_16tb/emrys/multimodal_generation/tgif/SPLIT_QTYPE_question.tsv"
-    video_path: Path = Path("/mnt/data_16tb/emrys/multimodal_generation/tgif")
+    # video_path: Path = Path("/mnt/data_16tb/emrys/multimodal_generation/tgif")
+    video_path: Path = Path("/data/henry/tgif_qa/gifs")
 
     def preproces_raw(self) -> List[VisualqaSample]:
         data = []
@@ -556,6 +559,82 @@ class TgifData(ExtraModel):
 
         return data
 
+class TextcapsData(ExtraModel):
+    """
+    downloaded from https://textvqa.org/textcaps/dataset/
+    """
+    task_name: str = "image captioning reading comprehension"
+    path_raw: str = "/mnt/data_16tb/emrys/multimodal_generation/textcaps/TextCaps_0.1_train.json"
+    image_path: Path = Path("/mnt/data_16tb/emrys/multimodal_generation/textcaps/train_images")
+
+    def preprocess_raw(self) -> List[CaptionSample]:
+        data = []
+        with open(self.path_raw) as f:
+            raw = json.load(f)
+
+        for sample in tqdm(raw["data"]):
+            sample = CaptionSample(
+                id=sample["image_id"],
+                text=sample["caption_str"],
+                image_path=str( (self.image_path/sample["image_path"]).resolve() ),
+                reference=sample["reference_strs"],
+            )
+            data.append(sample)
+
+        return data
+
+class FlickerData(ExtraModel):
+    """
+    from https://www.kaggle.com/datasets/hsankesara/flickr-image-dataset
+    """
+    task_name: str = "image captioning"
+    path_raw: str = "/mnt/data_16tb/emrys/multimodal_generation/flickr/results.csv"
+
+    def preprocess_raw(self) -> List[CaptionSample]:
+        data = []
+        raw = pd.read_csv(self.path_raw, sep="|")
+        image_text_dict = defaultdict(list)
+        for i, value in raw.iterrows():
+            image_text_dict[value["image_name"]].append(value["comment"])
+
+        for image_name, comments in tqdm(image_text_dict.items()):
+            sample = CaptionSample(
+                id=image_name,
+                image_path=image_name,
+                text=comments,
+            )
+            data.append(sample)
+        return data
+
+class OcrvqaData(ExtraModel):
+    """
+    downloaded from https://ocr-vqa.github.io/
+    """
+    task_name: str = "ocr"
+    path_raw: str = "/mnt/data_16tb/emrys/multimodal_generation/ocr-vqa/dataset.json"
+
+    def preprocess_raw(self) -> List[VisualqaSample]:
+        data = []
+        with open(self.path_raw) as f:
+            raw = json.load(f)
+        for key, value in tqdm(raw.items()):
+            for q, a in zip(value["questions"], value["answers"]):
+                sample = VisualqaSample(
+                    id=key,
+                    video_path="",
+                    image_url=value["imageURL"],
+                    text=q,
+                    answer=a,
+                )
+                data.append(sample)
+        return data
+
+
+class McrData(ExtraModel):
+    """
+    data downloaded to /data/henry/MCR_Total
+    """
+    task_name: str = "multimodal review analysis"
 
 
 
@@ -622,8 +701,16 @@ def test(name: str):
         dataset = MsvdData()
     elif name == "tgif":
         # todo need testing
-        # 73
+        # 73 and 195
         dataset = TgifData()
+    elif name == "textcaps":
+        # 73
+        dataset = TextcapsData()
+    elif name == "flickr":
+        # 73
+        dataset = FlickerData()
+    elif name == "ocrvqa":
+        dataset = OcrvqaData()
     else:
         raise ValueError("dataset currently not included")
 

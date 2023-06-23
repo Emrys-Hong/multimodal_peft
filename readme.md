@@ -1,4 +1,55 @@
-## Multimodal Peft Dataset
+# MultiModal Peft datasets
+
+
+## Speech Language Pretraining Tasks
+
+### ASR
+i-code: An integrative and composable multi-modal learning framework
+```
+Transcribe the speech utterance to text
+```
+### Sentiment Analysis
+MOSEI
+Spoken Language Understanding Evaluation (SLUE)
+```
+Predict the sentiment of this segment:
+```
+### Emotion Recognition
+CMU-MOSEI
+```
+Predict the emotion of this segment:
+```
+### Speech Augmented Text Reconstruction
+```
+Reconstruct the following text based on the speech:
+```
+## Vision Language Pretraining Tasks
+### Vision Captioning for Image
+Florence image-text pair dataset
+```
+Generate the caption for this image:
+```
+### Vision Captioning for Video
+Web-Vid10M
+```
+Generate the caption for this video
+```
+### VQA
+VQA V2
+```
+Answer the following question based on the image:
+```
+### Vision Augmented Text Reconstruction
+Same as image Captioning
+```
+Reconstruct the following text based on the image: [with masked text]
+```
+
+## Language - Only Tasks
+### Text Recontrusction
+```
+Reconstruct masked spans in the following text:
+```
 
 Tasks from InstructBlip, 
 Task from ICode

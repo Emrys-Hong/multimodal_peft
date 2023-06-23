@@ -1,10 +1,5 @@
 ## Multimodal Peft Dataset
 
-| Task                                   | Datasets                                      | Size          | path            |
-|----------------------------------------|-----------------------------------------------|---------------|-----------------|
-| Video QA                               | TGIF-QA MSVD-QA                               | 165K          | In progress     |
-| Video QA                               | MSRVTT-QA                                     | 243K          | In progress     |
-
 Tasks from InstructBlip, 
 Task from ICode
 
@@ -33,3 +28,4 @@ COCO
 ### Other possible datasets
 - [Youtube 8M](https://research.google.com/youtube8m/) Video classfication dataset
 - [Multimodal C4](https://github.com/allenai/mmc4) billion scale corpus of images interleaved with text
+- [VALOR](https://github.com/TXH-mercury/VALOR) VALOR: Vision-Audio-Language Omni-Perception Pretraining Model and Dataset

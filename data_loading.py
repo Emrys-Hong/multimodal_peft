@@ -1,3 +1,4 @@
+from collections import defaultdict
 import json, jsonlines
 from os import cpu_count
 import os
@@ -5,7 +6,7 @@ import re
 import random
 from pprint import pprint
 from pathlib import Path
-from typing import List, Tuple, Dict, Union, Optional
+from typing import DefaultDict, List, Tuple, Dict, Union, Optional
 from types import MethodType 
 
 from fire import Fire
@@ -22,12 +23,27 @@ class ExtraModel(BaseModel, extra="allow"):
 
 class Sample(BaseModel):
     id: str = ""
-    text: str = ""
+    text: Union[List[str], str] = ""
 
 
 class CaptionSample(Sample):
     image_path: str
 
+
+class VideoSample(Sample):
+    video_path: str
+    start_time: Optional[float] = None
+    end_time: Optional[float] = None
+
+class AudioSample(Sample):
+    audio_path: str
+    description: Optional[str] = None # describe the audio sample
+    tags: Optional[List[str]] = None # list of tags that can describe the audio
+    duration: Optional[float] = None # in terms of seconds
+
+class VisualqaSample(VideoSample):
+    answer: str
+    options: List[str]
 
 class CocoData(ExtraModel):
     train_image_path: Path = Path("data/COCO/train2014/")
@@ -135,9 +151,6 @@ class AOKVQAData(CocoData):
                 data.append(sample)
 
         return data
-
-class VideoSample(Sample):
-    video_path: str
 
 class WebvidsData(ExtraModel):
     task_name: str = "video caption"
@@ -266,12 +279,6 @@ class Cc3mData(ExtraModel):
             )
             data.append(sample)
         return data
-
-class AudioSample(Sample):
-    audio_path: str
-    description: Optional[str] = None # describe the audio sample
-    tags: Optional[List[str]] = None # list of tags that can describe the audio
-    duration: Optional[float] = None # in terms of seconds
 
 class WavcapsData(ExtraModel):
     """
@@ -449,7 +456,105 @@ class LibrispeechData(ExtraModel):
 
         return data
 
+class MsrvttData(ExtraModel):
+    """
+    dataset downloaded from https://github.com/VisionLearningGroup/caption-guided-saliency/issues/6
+    """
+    task_name: str = "video caption"
+    video_path_raw: str = "/mnt/data_16tb/emrys/multimodal_generation/msr-vtt/train_val_videodatainfo.json"
+    video_path: Path = Path("/mnt/data_16tb/emrys/multimodal_generation/msr-vtt/TrainValVideo")
 
+    def load(self):
+        with open(self.video_path_raw) as f:
+            raw = json.load(f)
+
+        videoid_sentence_dict = defaultdict(list)
+        for sent in raw["sentences"]:
+            video_id = sent["video_id"]
+            caption = sent["caption"]
+            videoid_sentence_dict[video_id].append(caption)
+
+        return raw, videoid_sentence_dict
+
+
+    def preprocess_raw(self) -> List[VisualqaSample]:
+        data = []
+
+        raw, videoid_sentence_dict = self.load()
+        for video in tqdm(raw["videos"]):
+            if video["split"] != "train": continue
+            videoid = video["video_id"]
+            video_path = str( (self.video_path/ f"{videoid}.mp4").resolve() )
+            sample = VideoSample(
+                id=videoid,
+                text=videoid_sentence_dict[videoid],
+                video_path=video_path,
+                start_time=float(video["start time"]),
+                end_time=float(video["end time"]),
+                category=video["category"],
+                url=video["url"],
+            )
+            data.append(sample)
+
+        return  data
+
+class MsrvttqaData(MsrvttData):
+    """
+    dataset downloaded from https://github.com/xudejing/video-question-answering
+    """
+    task_name: str = "video QA"
+    path_raw: str = "/mnt/data_16tb/emrys/multimodal_generation/MSRVTT-QA/train_qa.json"
+
+    def preprocess_raw(self) -> List[VisualqaSample]:
+        data = []
+        with open(self.path_raw) as f:
+            raw = json.load(f)
+        video_raw, videoid_sentence_dict = self.load()
+
+        for sample in tqdm(raw):
+            videoid = "video" + sample["video_id"]
+            video_path = str( (self.video_path/ f"{videoid}.mp4").resolve() )
+
+            sample = VisualqaSample(
+                id=sample["id"],
+                text=sample["question"],
+                answer=sample["answer"],
+                video_path=video_path,
+                # todo did not include the start time and end time, can use the processed file from msrvtt
+            )
+            data.append(sample)
+        return data
+
+class MsvdData(MsrvttqaData):
+    """
+    dataset downloaded from https://github.com/xudejing/video-question-answering
+    """
+    path_raw: str = "/mnt/data_16tb/emrys/multimodal_generation/MSVD-QA/train_qa.json"
+class TgifData(ExtraModel):
+    """
+    Dataset downloaded from https://github.com/YunseokJANG/tgif-qa/blob/master/dataset/README.md
+    """
+    task_name: str = "video qa"
+    raw_path: str = "/mnt/data_16tb/emrys/multimodal_generation/tgif/SPLIT_QTYPE_question.tsv"
+    video_path: Path = Path("/mnt/data_16tb/emrys/multimodal_generation/tgif")
+
+    def preproces_raw(self) -> List[VisualqaSample]:
+        data = []
+
+        raw = pd.read_tsv(self.raw_path)
+
+        for i, values in raw.iterrows():
+            video_path = str(self.video_path / (values["vid_id"]+".mp4"))
+            sample = VisualqaSample(
+                id=i,
+                text=values["question"],
+                answer=values["answer"],
+                options=eval(values["multiple choices"]),
+                video_path=video_path,
+            )
+            data.append(sample)
+
+        return data
 
 
 
@@ -458,29 +563,38 @@ class LibrispeechData(ExtraModel):
 
 def test(name: str):
     if name == "cococaption":
+        # 73
         dataset = CocoCaptionData()
     elif name == "okvqa":
+        # 73
         dataset = OKVQAData()
     elif name == "aokvqa":
+        # 73
         dataset = AOKVQAData()
     elif name == "webvids":
+        # 73
         dataset = WebvidsData()
     elif name == "redcaps":
+        # 73
         dataset = RedcapsData()
     elif name == "llavainstruct":
+        # 73
         dataset = LlavainstructData()
     elif name == "cc3m":
-        # not tested
+        # 73
         dataset = Cc3mData()
     elif name == "freesound":
         # use self.download() function to download the data
-        # there were some data under path /mnt/data_02tb/deep/wavcaps_audioset/WavCaps/Zip_files/FreeSound
+        # or there were some data under path /mnt/data_02tb/deep/wavcaps_audioset/WavCaps/Zip_files/FreeSound
+        # 73
         dataset = FreesoundData()
     elif name == "vggsound":
+        # 73
         dataset = VggsoundData()
     elif name == "gigaspeech":
         # This is one is on 253
         # todo not finished with arrow file
+        # 73
         dataset = GigaspeechData()
     elif name == "bbcsound":
         # 100
@@ -492,9 +606,24 @@ def test(name: str):
         # 100
         dataset = AudiosetslData()
     elif name == "mosei":
+        # 253
         dataset = MoseiData()
     elif name == "librispeech":
+        # 253
         dataset = LibrispeechData()
+    elif name == "msrvtt":
+        # 73
+        dataset = MsrvttData()
+    elif name == "msrvttqa":
+        # 73
+        dataset = MsrvttqaData()
+    elif name == "msvd":
+        # 73
+        dataset = MsvdData()
+    elif name == "tgif":
+        # todo need testing
+        # 73
+        dataset = TgifData()
     else:
         raise ValueError("dataset currently not included")
 

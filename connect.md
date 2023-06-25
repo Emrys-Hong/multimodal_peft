@@ -7,6 +7,8 @@ tar -xvzf glibc-2.34.tar.gz
 mkdir build 
 mkdir glibc-2.34-install
 cd build
+sudo apt install gawk bison
+unset LD_LIBRARY_PATH
 ~/glibc/glibc-2.34/configure --prefix=$HOME/glibc/glibc-2.34-install
 make
 make install
